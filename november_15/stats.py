@@ -1,5 +1,3 @@
-__author__ = 'Alok'
-
 import zlib
 import pickle
 import os
@@ -27,7 +25,7 @@ def read_dump(filepath):
         return pickle.loads(zlib.decompress(f.read()))
 
 if __name__ == "__main__":
-    filename = 'MNIST-handwritten-digits-1447006381-696342.ml'
+    filename = 'MNIST-handwritten-digits-1447047318-99682.ml'
 
     data = read_dump(os.path.join('dumps', filename))
 

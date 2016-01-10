@@ -1,5 +1,3 @@
-__author__ = 'Alok'
-
 import numpy as np
 
 
@@ -24,10 +22,18 @@ class NeuralNet:
 
     def mini_batch_train(self, data_stream, algorithm, learning_rate=0.01,
                          iterations=20, cost_tracker=None, apply_feature_scaling=False):
-        """
-        Train a data set with labels using `algorithm`
-        data_stream: Generator that returns packets of  Input/output data
-        algorithm: Choice of algorithms to be used for training
+        """ Train a data set with labels using algorithm.
+
+        Args:
+            data_stream(generator): returns packets of  Input/output data
+            algorithm(function): choice of algorithm to be used
+            learning_rate(float): the learning rate (alpha)
+            iterations(int):
+            cost_tracker:
+            apply_feature_scaling:
+
+        Returns:
+
         """
         costs = []
 
@@ -60,7 +66,8 @@ class NeuralNet:
             delta_thetas = self._backprop(x, y)
 
             # update thetas
-            self.thetas = [theta - learning_rate * delta_theta for theta, delta_theta in zip(self.thetas, delta_thetas)]
+            self.thetas = [theta - learning_rate * delta_theta
+                           for theta, delta_theta in zip(self.thetas, delta_thetas)]
 
     def _backprop(self, x, y):
         # feed-forward: initialize input value for each nodes in all the layers
@@ -131,13 +138,13 @@ class NeuralNet:
 
     def _validate_input_layer(self, shape):
         if shape[1] != self.layers[0]:    # considering the extra bias feature 1
-            raise ValueError('Feature set dimension mismatch; expecting feature set with cardinality: {0}, got: {0}'.
-                             format(self.layers[0], shape[1]))
+            raise ValueError('Feature set dimension mismatch; expecting feature set with'
+                             ' cardinality: {0}, got: {0}'.format(self.layers[0], shape[1]))
 
     def _validate_output_layer(self, shape):
         if shape[1] != self.layers[-1]:
-            raise ValueError('Output dimension mismatch; expecting outputs with cardinality: {0}, got: {0}'.
-                             format(self.layers[-1], shape[1]))
+            raise ValueError('Output dimension mismatch; expecting outputs with cardinality: '
+                             '{0}, got: {0}'.format(self.layers[-1], shape[1]))
 
     @staticmethod
     def sigmoid(a):

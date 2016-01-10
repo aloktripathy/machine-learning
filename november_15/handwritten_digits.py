@@ -1,5 +1,3 @@
-__author__ = 'Alok'
-
 import time
 import pickle
 import zlib
@@ -207,7 +205,8 @@ if __name__ == "__main__":
         print(testing_cost)
         reader.shuffle()
 
-    data = {'thetas': thetas, 'time_taken_in_seconds': round(time_taken), 'metadata': metadata, 'costs': costs}
+    data = {'thetas': thetas, 'time_taken_in_seconds': round(time_taken), 'metadata': metadata,
+            'costs': costs}
     # write_dump(data)
 
     print(time_taken)
@@ -225,6 +224,6 @@ if __name__ == "__main__":
 
     # validation
     '''
-    data = read_dump('dumps/MNIST-handwritten-digits-1447021461-554144.ml')
+    # data = read_dump('dumps/MNIST-handwritten-digits-1447021461-554144.ml')
     validate(metadata, data['thetas'])
     '''
