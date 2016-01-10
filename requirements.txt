@@ -1,0 +1,9 @@
+#   Installing numpy and scipy in windows throws vcvarsall.bat not found exception. So install the whl files instead
+#       pip install whls/numpy-1.9.2+mkl-cp34-none-win32.whl
+#       pip install whls/scipy-0.15.1-cp34-none-win32.whl
+#       pip install whls/
+#       pip install whls/scikit_image-0.11.3-cp34-none-win32.whl
+
+numpy
+scipy
+scikit-learn
