@@ -3,6 +3,7 @@ __author__ = 'Alok'
 import pickle
 import gzip
 import math
+import time
 
 import numpy as np
 
@@ -18,8 +19,13 @@ class MNISTReader(AbstractDataSet):
         self.validation_data = None
         self.test_data = None
 
-    def load(self):
+    def load(self, verbose=False):
+        t = -time.time()
         self.training_data, self.validation_data, self.test_data = load_data_wrapper(self.file_path)
+        t += time.time()
+        if verbose:
+            print('time taken to initialize load MNIST data from disk: {0} seconds'.
+                  format(round(t, 2)))
 
     def get(self, limit, skip=None, *args, **kwargs):
         """
@@ -128,7 +134,7 @@ def load_data(file_path):
     """
     with gzip.open(file_path, 'rb') as f:
         # workaround: doesn't work without encoding attr
-        training_data, validation_data, test_data = pickle.load(f, encoding='latin1')
+        training_data, validation_data, test_data = pickle.load(f)
 
     return training_data, validation_data, test_data
 

@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit
+
 
 class NeuralNetError(Exception):
     pass
@@ -28,10 +28,7 @@ class NeuralNet(object):
         self.random_initialize_weights()
 
     def random_initialize_weights(self):
-        """
-        Initialize weights using gaussian distribution with mean 0 and variance 1
-        :return: None
-        """
+        """ Initialize weights using gaussian distribution with mean 0 and variance 1 """
         self.weights = [np.random.randn(self.layers[i + 1], j + 1)
                         for i, j in enumerate(self.layers[:-1])]
 
@@ -42,13 +39,69 @@ class NeuralNet(object):
             print(self.cost(testing_data[0], testing_data[1]))
 
     def gradient_descent(self, x, y, iterations, learning_rate):
-        """
-
-        """
         for i in range(iterations):
             gradients = self.back_prop(x, y)
             self.weights = [weight - learning_rate * gradient
                             for weight, gradient in zip(self.weights, gradients)]
+
+    def back_prop(self, x, y):
+        """ Perform back propagation algorithm on the model using the training data x, y.
+
+        Args:
+            x: input data
+            y: output labels
+
+        Returns:
+            weight gradients
+        """
+        m = x.shape[0]
+        activations = self.feed_forward(x)
+
+        # use activations to compute errors in prediction
+        errors = list()
+        # error for output layer is predicted as output minus actual output
+        errors.append(activations[-1] - y)
+
+        # The following loop evaluated error matrices for all but input and output layer
+        # Examples:
+        #     for a neural network with one hidden layer, 3 layers total, this loop will
+        #     run only once, equivalent to-
+        #     for i in [1]:
+        #         ...
+        #     similarly for another network with 3 hidden layers (5 total), the expression
+        #      would be-
+        #     for i in [3, 2, 1]:
+        #         ...
+        # The idea is to evaluate error matrices for hidden layers in backward direction one
+        # by one
+
+        for i in reversed(range(1, self.n_layers - 1)):
+            e = errors[0]
+            # activation gradient da/dz = a * ( 1 - a )
+            activation_gradients = activations[i] * (1 - activations[i])
+
+            error = np.dot(e, self.weights[i]) * activation_gradients
+            errors.insert(0, error[:, 1:])              # prepend the back-propagated error matrix
+
+        # compute weight gradients or delta matrices
+        weight_gradients = []
+
+        for i, error in enumerate(errors):
+            gradient = np.dot(error.transpose(), activations[i]) / m
+
+            if self.lmda:
+                # Determine the regularization penalty
+                # We're not supposed to penalize bias terms so let's replace them with zeroes
+                weights_without_biases = self.insert_in_matrix(self.weights[i][:, 1:],
+                                                               value=0, position=0,
+                                                               in_axis=1)
+                regularization_penalty = self.lmda / m * weights_without_biases
+            else:
+                regularization_penalty = 0
+
+            weight_gradients.append(gradient + regularization_penalty)
+
+        return weight_gradients
 
     def feed_forward(self, x):
         """
@@ -59,68 +112,18 @@ class NeuralNet(object):
         activations = list()
         activations.append(self.insert_in_matrix(x, position=0, value=1, in_axis=1))
 
-        for i in range(self.n_layers - 1):
-            z = np.dot(activations[i], self.weights[i].transpose())
+        for i in range(1, self.n_layers):
+            z = np.dot(activations[i-1], self.weights[i-1].transpose())
+            # TODO: softmax
             a = self.sigmoid(z)
 
-            '''add activation for bias unit for all but output layer'''
-            if i != self.n_layers - 2:
+            # add bias units to all but output layer
+            if i != self.n_layers - 1:  # self.layers[self.n_layers - 1] is the output layer
                 a = self.insert_in_matrix(a, position=0, value=1, in_axis=1)
 
             activations.append(a)
 
         return activations
-
-    def back_prop(self, x, y):
-        """ Perform back propagation algorithm on the model using the training data x, y.
-
-        Args:
-            x: input data
-            y: output labels
-
-        Returns:
-            delta term
-        """
-        m = x.shape[0]
-        activations = self.feed_forward(x)
-
-        # use activations to compute errors in prediction
-        errors = list()
-        # error for output layer is predicted output minus actual output
-        errors.append(activations[-1] - y)
-
-        '''
-        The following loop evaluated error matrices for all but input and output layer
-        Examples:
-            for a neural network with one hidden layer, 3 layers total, this loop will
-            run only once, equivalent to-
-            for i in [1]:
-                ...
-            similarly for another network with 3 hidden layers (5 total), the expression
-             would be-
-            for i in [3, 2, 1]:
-                ...
-        The idea is to evaluate error matrices for hidden layers in backward direction one
-        by one
-        '''
-        for i in reversed(range(1, self.n_layers - 1)):
-            e = errors[0]
-            z = activations[i] * (1 - activations[i])   # sigmoid gradient evaluation
-
-            error = np.dot(e, self.weights[i]) * z
-            errors.insert(0, error[:, 1:])              # prepend the back-propagated error matrix
-
-        # compute weight gradients or delta matrices
-        weight_gradients = []
-
-        for i, error in enumerate(errors):
-            gradient = np.dot(error.transpose(), activations[i]) / m
-            regularization_penalty = self.lmda / m * self.insert_in_matrix(self.weights[i][:, 1:],
-                                                                           value=0, position=0,
-                                                                           in_axis=1)
-            weight_gradients.append(gradient + regularization_penalty)
-
-        return weight_gradients
 
     def predict(self, x):
         """
@@ -142,21 +145,25 @@ class NeuralNet(object):
         m = x.shape[0]
         hx = self.predict(x)
 
-        entropy_cost = np.sum(-1 / m * (y * np.log(hx) + (1 - y) * np.log(1 - hx)))
+        # TODO: Log likelihood cost
+        cross_entropy_cost = np.sum(-1 / m * (y * np.log(hx) + (1 - y) * np.log(1 - hx)))
 
-        weights_squared_sum = sum(np.sum(np.power(weight[:, 1:], 2)) for weight in self.weights)
-        regularization_penalty = self.lmda / (2 * m) * weights_squared_sum
+        if self.lmda:
+            weights_squared_sum = sum(np.sum(np.power(weight[:, 1:], 2)) for weight in self.weights)
+            regularization_penalty = self.lmda / (2 * m) * weights_squared_sum
+        else:
+            regularization_penalty = 0
 
-        cost = entropy_cost + regularization_penalty
+        cost = cross_entropy_cost + regularization_penalty
 
         if not include_accuracy:
             return cost
         else:
             p_digits = np.argmax(hx, axis=1)
             y_digits = np.argmax(y, axis=1)
-            accuracy = sum([1 if i == j else 0 for i, j in zip(p_digits, y_digits)]) / len(p_digits)
-            # print('predicted-', p_digits[1:30])
-            # print('actual----', y_digits[1:30])
+
+            accurate_predictions = sum([1 if i == j else 0 for i, j in zip(p_digits, y_digits)])
+            accuracy = float(accurate_predictions) / len(p_digits)
             return cost, accuracy
 
     @staticmethod
